@@ -1,0 +1,42 @@
+/ Get provider and owner account
+  // const [owner, account2] = await ethers.getSigners(); //1
+  // provider = owner.provider;
+
+  // console.log(
+  //   "-------------------------------Provider-------------------------------""
+  // );
+  // console.log(provider);
+
+  // const privateKey =
+  //   "0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80";
+
+  // const provider = new ethers.providers.JsonRpcProvider(
+  //   "http://127.0.0.1:8545/",
+  //   {
+  //     chainId: 31337, // Rinkeby's chain ID is 4
+  //     name: "local",
+  //   }
+  // );
+
+  // console.log(
+  //   "-------------------------------Provider-------------------------------"
+  // );
+  // console.log(provider);
+
+  // const wallet = new ethers.Wallet(privateKey);
+  // const signerAddress = wallet.address;
+  // const owner = wallet.connect(provider);
+
+  // owner = {
+  //   signer: signer,
+  //   address: signerAddress,
+  // };
+
+  // console.log(
+  //   "-----------------------------------Owner address----------------------"
+  // );
+  // console.log("Owner address: ", owner.address);
+  // console.log(owner);
+
+  //------------------------------------------------------------------------------------------------------------------
+  //from private key code ->

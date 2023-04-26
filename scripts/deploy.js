@@ -8,54 +8,12 @@ const {
 const TestToken = require("@superfluid-finance/ethereum-contracts/build/contracts/TestToken.json");
 
 async function deploy() {
-  // let provider;
-  // let owner;
   let sfDeployer;
   let contractsFramework;
   let sf;
   let dai;
   let daix;
-
-  // Get provider and owner account
-  // [owner] = await ethers.getSigners(); //1
-  // provider = owner.provider;
-
-  // console.log(
-  //   "-------------------------------Provider-------------------------------""
-  // );
-  // console.log(provider);
-
-  //------------------------------------------------------------------------------------------------------------------
-  // const privateKey =
-  //   "0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80";
-
-  // const provider = new ethers.providers.JsonRpcProvider(
-  //   "http://127.0.0.1:8545/",
-  //   {
-  //     chainId: 31337, // Rinkeby's chain ID is 4
-  //     name: "local",
-  //   }
-  // );
-
-  // console.log(
-  //   "-------------------------------Provider-------------------------------"
-  // );
-  // console.log(provider);
-
-  // const wallet = new ethers.Wallet(privateKey);
-  // const signerAddress = wallet.address;
-  // const owner = wallet.connect(provider);
-
-  // owner = {
-  //   signer: signer,
-  //   address: signerAddress,
-  // };
-
-  // console.log(
-  //   "-----------------------------------Owner address----------------------"
-  // );
-  // console.log("Owner address: ", owner.address);
-  // console.log(owner);
+  let accounts;
 
   const provider = new ethers.providers.Web3Provider(network.provider);
   provider._networkPromise = Promise.resolve({
@@ -68,19 +26,31 @@ async function deploy() {
   );
   console.log(provider);
 
-  const privateKey =
-    "0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80";
+  const accountOne = await provider.getSigner(1);
+  const accountTwo = await provider.getSigner(2);
 
-  const wallet = new ethers.Wallet(privateKey);
-  const signerAddress = wallet.address;
-  const owner = wallet.connect(provider);
+  // const privateKey =
+  //   "0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80";
+
+  // const wallet = new ethers.Wallet(privateKey);
+  // const owner = wallet.connect(provider);
+  // const signerAddress = wallet.address;
+
+  const owner = await provider.getSigner(0);
+
+  // Get the third account from Hardhat's accounts array
+
+  // Print the addresses of the second and third accounts
+  console.log("Second account address:", await owner.getAddress());
 
   console.log("---------------------Owner-------------------");
   console.log(owner);
 
-  // const accounts = await provider.listAccounts();
-  // console.log(accounts);
+  console.log("-------------------------all accounts-------------------------");
+  accounts = await provider.listAccounts();
+  console.log(accounts);
 
+  // --------------------------------------------------------------------------framework deployment
   try {
     // Deploy test framework
     sfDeployer = await deployTestFramework();
@@ -99,34 +69,94 @@ async function deploy() {
     );
     if (sf) {
       console.log("successful");
+      // console.log(sf);
+      console.log("-------------------all addresses---------------------");
+      // console.log("Config:", sf.contracts);
+      console.log(sf.settings.config);
+      console.log(sf.settings.config.hostAddress);
     }
     // console.log(sf);
   } catch (err) {
     console.log(err);
   }
 
-  // Deploy DAI and DAI wrapper super token
-  const tokenDeployment = await sfDeployer.deployWrapperSuperToken(
-    "Fake DAI Token",
-    "fDAI",
-    18,
-    ethers.utils.parseEther("100000000").toString()
-  );
-  daix = await sf.loadSuperToken("fDAIx");
-  dai = new ethers.Contract(daix.underlyingToken.address, TestToken.abi, owner);
+  //-----------------------------------------------------------------------------token deployment
+  try {
+    // Deploy DAI and DAI wrapper super token
+    const tokenDeployment = await sfDeployer.deployWrapperSuperToken(
+      "Fake DAI Token",
+      "fDAI",
+      18,
+      ethers.utils.parseEther("100000000").toString()
+    );
+    daix = await sf.loadSuperToken("fDAIx");
+    dai = new ethers.Contract(
+      daix.underlyingToken.address,
+      TestToken.abi,
+      owner
+    );
 
-  console.log(
-    "-----------------------------------SF Instance----------------------"
-  );
-  if (sf) {
-    console.log("successful");
+    console.log("fdaix address:" + daix.underlyingToken.address);
+
+    const thousandEther = ethers.utils.parseEther("10000");
+
+    const mint = await dai
+      .connect(accountOne)
+      .mint(accountOne.getAddress(), thousandEther);
+
+    await dai
+      .connect(accountOne)
+      .approve(daix.address, ethers.constants.MaxInt256);
+
+    const account1Upgrade = daix.upgrade({ amount: thousandEther });
+    await account1Upgrade.exec(accountOne);
+
+    if (mint) {
+      console.log(await accountOne.getAddress());
+      const daiBal = await daix.balanceOf({
+        account: await accountOne.getAddress(),
+        providerOrSigner: accountOne,
+      });
+      console.log("daix bal for acct 1: ", daiBal);
+    }
+
+    // const createFlowOperation = daix.createFlow({
+    //   receiver: await accountTwo.getAddress(),
+    //   flowRate: "100000000",
+    // });
+
+    const createFlowOperation = daix.createFlow({
+      sender: await accountOne.getAddress(),
+      receiver: await accountTwo.getAddress(),
+      flowRate: "100000000",
+      // userData?: string
+    });
+    console.log("instance");
+    console.log("Creating your stream...");
+
+    const result = await createFlowOperation.exec(accountOne);
+    console.log(result);
+
+    await result.wait();
+
+    console.log("stream started");
+
+    const appFlowRate = await daix.getNetFlow({
+      account: await accountTwo.getAddress(),
+      providerOrSigner: accountOne,
+    });
+    console.log("flowRate:" + appFlowRate);
+
+    const appFinalBalance = await daix.balanceOf({
+      account: await accountOne.getAddress(),
+      providerOrSigner: accountOne,
+    });
+    console.log("Account 2 balance:" + appFinalBalance);
+  } catch (err) {
+    console.log(err);
   }
-  // console.log(sf);
-  console.log("-----------------------------------DAI----------------------");
 
-  console.log(dai);
-  console.log("dai token address");
-  console.log(daix.underlyingToken.address);
+  // ______________________________________________________________________________________________ start stream
 }
 
 deploy();
