@@ -1,0 +1,9 @@
+{
+  "dependencies": {
+    "@nomicfoundation/hardhat-toolbox": "^2.0.2",
+    "@superfluid-finance/ethereum-contracts": "^1.5.2",
+    "@superfluid-finance/sdk-core": "^0.6.3",
+    "chai": "^4.3.7",
+    "hardhat": "^2.14.0"
+  }
+}
