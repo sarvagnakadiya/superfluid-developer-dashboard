@@ -7,6 +7,13 @@ const {
 } = require("@superfluid-finance/ethereum-contracts/dev-scripts/deploy-test-framework");
 const TestToken = require("@superfluid-finance/ethereum-contracts/build/contracts/TestToken.json");
 
+const readline = require("readline");
+
+const rl = readline.createInterface({
+  input: process.stdin,
+  output: process.stdout,
+});
+
 async function deploy() {
   let sfDeployer;
   let contractsFramework;
@@ -14,6 +21,7 @@ async function deploy() {
   let dai;
   let daix;
   let accounts;
+  let superSigner;
 
   const provider = new ethers.providers.Web3Provider(network.provider);
   provider._networkPromise = Promise.resolve({
@@ -38,10 +46,7 @@ async function deploy() {
 
   const owner = await provider.getSigner(0);
 
-  // Get the third account from Hardhat's accounts array
-
-  // Print the addresses of the second and third accounts
-  console.log("Second account address:", await owner.getAddress());
+  console.log("owner account address:", await owner.getAddress());
 
   console.log("---------------------Owner-------------------");
   console.log(owner);
@@ -74,6 +79,11 @@ async function deploy() {
       // console.log("Config:", sf.contracts);
       console.log(sf.settings.config);
       console.log(sf.settings.config.hostAddress);
+
+      superSigner = sf.createSigner({
+        signer: owner,
+        provider: provider,
+      });
     }
     // console.log(sf);
   } catch (err) {
@@ -87,7 +97,7 @@ async function deploy() {
       "Fake DAI Token",
       "fDAI",
       18,
-      ethers.utils.parseEther("100000000").toString()
+      ethers.utils.parseEther("10000000000000000000000000").toString()
     );
     daix = await sf.loadSuperToken("fDAIx");
     dai = new ethers.Contract(
@@ -98,7 +108,7 @@ async function deploy() {
 
     console.log("fdaix address:" + daix.underlyingToken.address);
 
-    const thousandEther = ethers.utils.parseEther("10000");
+    const thousandEther = "10000000000000000000000000";
 
     const mint = await dai
       .connect(accountOne)
@@ -125,36 +135,137 @@ async function deploy() {
     //   flowRate: "100000000",
     // });
 
-    const createFlowOperation = daix.createFlow({
+    console.log("before starting the stream balance:" + getAppFinalBalance());
+    console.log("Creating your stream...");
+    let createFlowOperation = daix.createFlow({
       sender: await accountOne.getAddress(),
       receiver: await accountTwo.getAddress(),
-      flowRate: "100000000",
+      flowRate: "100000000000000000000", //10000000000000000000000
       // userData?: string
     });
-    console.log("instance");
-    console.log("Creating your stream...");
 
     const result = await createFlowOperation.exec(accountOne);
     console.log(result);
 
-    await result.wait();
+    const receipt = await result.wait();
 
-    console.log("stream started");
+    if (receipt) {
+      console.log("stream started!");
+    }
 
     const appFlowRate = await daix.getNetFlow({
       account: await accountTwo.getAddress(),
-      providerOrSigner: accountOne,
+      providerOrSigner: superSigner,
     });
     console.log("flowRate:" + appFlowRate);
 
-    const appFinalBalance = await daix.balanceOf({
+    const appFlowRateOwner = await daix.getNetFlow({
+      account: await accountOne.getAddress(),
+      providerOrSigner: superSigner,
+    });
+    console.log("flowRateOwner:" + appFlowRateOwner);
+
+    let res = await daix.getFlow({
+      sender: await accountOne.getAddress(),
+      receiver: await accountTwo.getAddress(),
+      providerOrSigner: accountOne,
+    });
+
+    console.log("getFlow:" + res);
+
+    const daixBalance = await daix.balanceOf({
+      account: await accountTwo.getAddress(),
+      providerOrSigner: accountTwo,
+    });
+    console.log("receiver" + daixBalance);
+
+    const daixBalanceOwner = await daix.balanceOf({
       account: await accountOne.getAddress(),
       providerOrSigner: accountOne,
     });
-    console.log("Account 2 balance:" + appFinalBalance);
+    console.log("owner balance " + daixBalanceOwner);
+
+    console.log("Waiting");
+    // Wait for 5 seconds using Promise and async/await
+    await new Promise((resolve) => setTimeout(resolve, 60000));
+
+    let flowOp = daix.deleteFlow({
+      sender: await accountOne.getAddress(),
+      receiver: await accountTwo.getAddress(),
+      // userData?: string
+    });
+
+    const resultDelete = await flowOp.exec(accountOne);
+    console.log(resultDelete);
+
+    const receiptDelete = await result.wait();
+
+    if (receiptDelete) {
+      console.log("stream started!");
+    }
+
+    const appFinalBalanceAgain = await daix.balanceOf({
+      account: await accountTwo.getAddress(),
+      providerOrSigner: accountTwo,
+    });
+    const appFinalBalanceAgainOwner = await daix.balanceOf({
+      account: await accountOne.getAddress(),
+      providerOrSigner: accountOne,
+    });
+    console.log("Account 2 balance (after 5 seconds):" + appFinalBalanceAgain);
+    console.log(
+      "Account 2 balance (after 5 seconds):" + appFinalBalanceAgainOwner
+    );
+    console.log("hello");
   } catch (err) {
     console.log(err);
   }
+
+  async function getAppFinalBalance() {
+    try {
+      const appFinalBalance = await daix.balanceOf({
+        account: await accountTwo.getAddress(),
+        providerOrSigner: superSigner,
+      });
+      console.log("Account 2 balance:" + appFinalBalance);
+      return appFinalBalance;
+    } catch (err) {
+      console.log(err);
+    }
+  }
+
+  function askUserForInput() {
+    return new Promise((resolve) => {
+      const recursiveQuestion = () => {
+        rl.question(
+          "Enter any character to get appFinalBalance, or enter 'x' to exit: ",
+          (answer) => {
+            if (answer === "x") {
+              console.log("Exiting...");
+              return resolve(answer);
+            } else {
+              console.log("Getting appFinalBalance...");
+              getAppFinalBalance();
+              recursiveQuestion();
+            }
+          }
+        );
+      };
+      recursiveQuestion();
+    });
+  }
+
+  async function handleUserInput() {
+    let userInput;
+    do {
+      userInput = await askUserForInput();
+      if (userInput === "x") {
+        await getAppFinalBalance();
+      }
+    } while (userInput !== "x");
+    rl.close();
+  }
+  // handleUserInput();
 
   // ______________________________________________________________________________________________ start stream
 }
