@@ -1,13 +1,25 @@
-# Sample Hardhat Project
+# Superfluid developer dashboard console
 
-This project demonstrates a basic Hardhat use case. It comes with a sample contract, a test for that contract, and a script that deploys that contract.
+## Prerequisites
 
-Try running some of the following tasks:
+Node.js (version 14 or later)
+
+### steps to get started with:
+
+clone this repo
 
 ```shell
-npx hardhat help
-npx hardhat test
-REPORT_GAS=true npx hardhat test
-npx hardhat node
+git clone https://github.com/sarvagnakadiya/superfluid-developer-dashboard.git
+cd superfluid-developer-dashboard
+```
+
+```shell
+npm install
+npm i @nomicfoundation/hardhat-toolbox
+```
+
+Now, the only thing you need to do is run:
+
+```shell
 npx hardhat run scripts/deploy.js
 ```
