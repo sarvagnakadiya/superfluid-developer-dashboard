@@ -67,7 +67,7 @@ async function deploy() {
   ]);
 
   const accountOne = await provider.getSigner(address.account);
-  const accountTwo = await provider.getSigner(2);
+  const accountTwo = await provider.getSigner(address.account + 1);
 
   // -----------------------------------------------------------use this code if want to stream with your choise of account
 
@@ -191,6 +191,7 @@ async function deploy() {
         },
       ])
       .then(async (answers) => {
+        //------------------------------------------------------------------------------------------------------ Start stream
         if (answers.selectedOption === "start") {
           const choiseAddress = await inquirer.prompt([
             {
@@ -251,7 +252,8 @@ async function deploy() {
               console.log("Transaction hash:", receipt.transactionHash);
             }
             prompt();
-          } else {
+          } // -----------------------------------------------------------------------------------ELse Part(default accounts)
+          else {
             const flowRate = await inquirer.prompt([
               {
                 type: "number",
