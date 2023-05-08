@@ -2,6 +2,8 @@ const inquirer = require("inquirer");
 const { Framework } = require("@superfluid-finance/sdk-core");
 const { ethers } = require("ethers");
 const { network } = require("hardhat");
+const fs = require("fs");
+
 const {
   deployTestFramework,
 } = require("@superfluid-finance/ethereum-contracts/dev-scripts/deploy-test-framework");
@@ -23,30 +25,10 @@ async function deploy() {
     { name: "getNetFlow", value: "viewnet" },
     { name: "getAccountFlowInfo", value: "viewaccountflow" },
     { name: "check DAIx balance", value: "balanceof" },
+    { name: "re-execute everything?", value: "reexecute" },
+    { name: "Clear all transactions?", value: "clear" },
     { name: "Exit console", value: "exit" },
   ];
-  /* const accountOptions = [
-    { name: "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266 - 1", value: "0" },
-    { name: "0x70997970C51812dc3A010C7d01b50e0d17dc79C8 - 2", value: "1" },
-    { name: "0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC - 3", value: "2" },
-    { name: "0x90F79bf6EB2c4f870365E785982E1f101E93b906 - 4", value: "3" },
-    { name: "0x15d34AAf54267DB7D7c367839AAf71A00a2C6A65 - 5", value: "4" },
-    { name: "0x9965507D1a55bcC2695C58ba16FB37d819B0A4dc - 6", value: "5" },
-    { name: "0x976EA74026E726554dB657fA54763abd0C3a0aa9 - 7", value: "6" },
-    { name: "0x14dC79964da2C08b23698B3D3cc7Ca32193d9955 - 8", value: "7" },
-    { name: "0x23618e81E3f5cdF7f54C3d65f7FBc0aBf5B21E8f - 9", value: "8" },
-    { name: "0xa0Ee7A142d267C1f36714E4a8F75612F20a79720 - 10", value: "9" },
-    { name: "0xBcd4042DE499D14e55001CcbB24a551F3b954096 - 11", value: "10" },
-    { name: "0x71bE63f3384f5fb98995898A86B02Fb2426c5788 - 12", value: "11" },
-    { name: "0xFABB0ac9d68B0B445fB7357272Ff202C5651694a - 13", value: "12" },
-    { name: "0x1CBd3b2770909D4e10f157cABC84C7264073C9Ec - 14", value: "13" },
-    { name: "0xdF3e18d64BC6A983f673Ab319CCaE4f1a57C7097 - 15", value: "14" },
-    { name: "0xcd3B766CCDd6AE721141F452C550Ca635964ce71 - 16", value: "15" },
-    { name: "0x2546BcD3c84621e976D8185a91A922aE77ECEc30 - 17", value: "16" },
-    { name: "0xbDA5747bFD65F08deb54cb465eB87D40e51B197E - 18", value: "17" },
-    { name: "0xdD2FD4581271e230360230F9337D5c0430Bf44C0 - 19", value: "18" },
-    { name: "0x8626f6940E2eb28930eFb4CeF49B2d1F2C9C1199 - 20", value: "19" },
-  ]; */
 
   let sfDeployer;
   let contractsFramework;
@@ -55,6 +37,7 @@ async function deploy() {
   let daix;
   let accounts;
   let superSigner;
+  const txHashes = [];
 
   const provider = new ethers.providers.Web3Provider(network.provider);
   provider._networkPromise = Promise.resolve({
@@ -184,6 +167,18 @@ async function deploy() {
     console.log(err);
   }
 
+  async function checkBalance(accountAddress, providerOrSigner) {
+    try {
+      const daixBalance = await daix.balanceOf({
+        account: accountAddress,
+        providerOrSigner: providerOrSigner,
+      });
+      console.log(`DAIx balance for ${accountAddress} is: ${daixBalance}🤑💸`);
+    } catch (err) {
+      console.log(err);
+    }
+  }
+
   async function prompt() {
     const answers = await inquirer
       .prompt([
@@ -240,6 +235,11 @@ async function deploy() {
 
             const result = await createFlowOperation.exec(accountOne);
             console.log(result);
+            console.log("Transaction Hash: " + result.hash);
+            txHashes.push(result.hash);
+
+            fs.writeFileSync("txHashes.json", JSON.stringify(txHashes));
+            console.log("Transactions recorded and saved to txHashes.json");
 
             const receipt = await result.wait();
             if (receipt) {
@@ -248,6 +248,7 @@ async function deploy() {
                   flowRate.flowrate
                 }"to: "${receiverAddress.address}" \u{1F60E}`
               );
+              console.log("Transaction hash:", receipt.transactionHash);
             }
             prompt();
           } else {
@@ -276,6 +277,11 @@ async function deploy() {
             console.log(result);
 
             const receipt = await result.wait();
+            console.log("Transaction Hash: " + result.hash);
+            txHashes.push(result.hash);
+
+            fs.writeFileSync("txHashes.json", JSON.stringify(txHashes));
+            console.log("Transactions recorded and saved to txHashes.json");
 
             if (receipt) {
               console.log("Stream started with hardhat accounts! \u{1F60E}");
@@ -293,18 +299,19 @@ async function deploy() {
             },
           ]);
 
-          try {
-            const daixBalance = await daix.balanceOf({
-              account: await viewBalanceAddress.address,
-              providerOrSigner: accountTwo,
-            });
-            console.log("account balance: " + daixBalance);
-            console.log(
-              `DAIx balance for ${viewBalanceAddress.address} is: ${daixBalance}🤑💸`
-            );
-          } catch (err) {
-            console.log(err);
-          }
+          // try {
+          //   const daixBalance = await daix.balanceOf({
+          //     account: await viewBalanceAddress.address,
+          //     providerOrSigner: accountTwo,
+          //   });
+          //   console.log("account balance: " + daixBalance);
+          //   console.log(
+          //     `DAIx balance for ${viewBalanceAddress.address} is: ${daixBalance}🤑💸`
+          //   );
+          // } catch (err) {
+          //   console.log(err);
+          // }
+          await checkBalance(await viewBalanceAddress.address, accountOne);
           prompt();
         }
 
@@ -441,6 +448,14 @@ async function deploy() {
             console.log(resultDelete);
 
             const receiptDelete = await resultDelete.wait();
+            //------
+            console.log("Transaction Hash: " + resultDelete.hash);
+            txHashes.push(resultDelete.hash);
+
+            fs.writeFileSync("txHashes.json", JSON.stringify(txHashes));
+            console.log(
+              "----------Transactions recorded and saved to txHashes.json"
+            );
 
             if (receiptDelete) {
               console.log("stream deleted!🙂");
@@ -451,6 +466,36 @@ async function deploy() {
           prompt();
         }
 
+        if (answers.selectedOption === "reexecute") {
+          const txHashes = JSON.parse(fs.readFileSync("txHashes.json"));
+          let nonce = await accountOne.getTransactionCount();
+          for (const txHash of txHashes) {
+            console.log("Hash going to deploy again: " + txHash);
+            const tx = await accountOne.provider.getTransaction(txHash);
+            const newTx = {
+              nonce: nonce++,
+              gasPrice: tx.gasPrice,
+              gasLimit: tx.gasLimit,
+              to: tx.to,
+              value: tx.value,
+              data: tx.data,
+              chainId: tx.chainId,
+            };
+            const txSend = await accountOne.sendTransaction(newTx);
+            const receipt = await txSend.wait();
+            console.log(`Transaction ${txHash} replayed`);
+            console.log(receipt);
+          }
+
+          console.log("All transactions replayed");
+          prompt();
+        }
+        if (answers.selectedOption === "clear") {
+          fs.writeFileSync("txHashes.json", "[]");
+
+          console.log("All transactions cleared!");
+          prompt();
+        }
         if (answers.selectedOption === "exit") {
           console.log(
             "Thank you for visiting superFluid developer dashboard!💚💚"
