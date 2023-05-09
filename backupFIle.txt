@@ -40,3 +40,16 @@
 
   //------------------------------------------------------------------------------------------------------------------
   //from private key code ->
+
+  // inquirer
+  //   .prompt([
+  //     {
+  //       type: "list",
+  //       name: "selectedOption",
+  //       message: "Please select an address to stream from:",
+  //       choices: accountOptions,
+  //     },
+  //   ])
+  //   .then((answers) => {
+  //     console.log(answers.selectedOption);
+  //   });

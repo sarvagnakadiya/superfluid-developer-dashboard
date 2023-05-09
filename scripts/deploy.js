@@ -3,6 +3,7 @@ const { Framework } = require("@superfluid-finance/sdk-core");
 const { ethers } = require("ethers");
 const { network } = require("hardhat");
 const fs = require("fs");
+const chalk = require("chalk");
 
 const {
   deployTestFramework,
@@ -45,24 +46,11 @@ async function deploy() {
     name: "unknown",
   });
 
-  // inquirer
-  //   .prompt([
-  //     {
-  //       type: "list",
-  //       name: "selectedOption",
-  //       message: "Please select an address to stream from:",
-  //       choices: accountOptions,
-  //     },
-  //   ])
-  //   .then((answers) => {
-  //     console.log(answers.selectedOption);
-  //   });
-
   const address = await inquirer.prompt([
     {
       type: "number",
       name: "account",
-      message: "Which account you want to interact with: (0-19)",
+      message: "Which account you want to interact with: (0-19): ",
     },
   ]);
 
@@ -71,26 +59,39 @@ async function deploy() {
 
   // -----------------------------------------------------------use this code if want to stream with your choise of account
 
-  // const privateKey =
-  //   "0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80";
+  /* const privateKey =
+    "0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80";
 
-  // const wallet = new ethers.Wallet(privateKey);
-  // const owner = wallet.connect(provider);
-  // const signerAddress = wallet.address;
+  const wallet = new ethers.Wallet(privateKey);
+  const owner = wallet.connect(provider);
+  const signerAddress = wallet.address; */
 
   const owner = await provider.getSigner(0);
   console.log(
-    `The account you will be interacting with thru this session will be: ` +
-      (await accountOne.getAddress())
+    `${chalk.yellow(
+      ">> The account you will be interacting with through out this session will be:"
+    )} ${chalk.bold.green(await accountOne.getAddress())}\n`
   );
 
-  console.log("owner account address:", await owner.getAddress());
+  // console.log("owner account address:", await owner.getAddress());
+  console.log(
+    `${chalk.yellow(">> Owner account address:")} ${chalk.bold.green(
+      await owner.getAddress()
+    )}\n`
+  );
 
   console.log(
-    "----------------------------------- All Hardhat Accounts ----------------------------------- "
+    `${chalk.cyan(
+      "=========================== All Hardhat Accounts ==========================="
+    )} \n`
   );
   accounts = await provider.listAccounts();
   console.log(accounts);
+  console.log(
+    `${chalk.cyan(
+      "==============================================================="
+    )} \n`
+  );
 
   // --------------------------------------------------------------------------framework deployment
   try {
@@ -107,12 +108,15 @@ async function deploy() {
     });
 
     if (sf) {
-      console.log("sf Instance deployed successfully! 🥳");
+      console.log(
+        `${chalk.yellow(">> sf Instance deployed successfully! 🥳🥳🥳")} \n`
+      );
 
       console.log(
-        "----------------------------------- SuperFluid Addresses ----------------------------------- "
+        `${chalk.cyan(
+          "=========================== SuperFluid Addresses ==========================="
+        )}`
       );
-      // console.log("Config:", sf.contracts);
       console.log(sf.settings.config);
 
       superSigner = sf.createSigner({
@@ -120,10 +124,14 @@ async function deploy() {
         provider: provider,
       });
     }
-    // console.log(sf);
   } catch (err) {
     console.log(err);
   }
+  console.log(
+    `${chalk.cyan(
+      "==============================================================="
+    )} \n`
+  );
 
   //-----------------------------------------------------------------------------token deployment
   try {
@@ -141,7 +149,12 @@ async function deploy() {
       owner
     );
 
-    console.log("fdaix token address:" + daix.underlyingToken.address);
+    // console.log("fdaix token address:" + daix.underlyingToken.address);
+    console.log(
+      `${chalk.yellow(">> fdaix token address: ")}${chalk.bold.green(
+        daix.underlyingToken.address
+      )}\n`
+    );
 
     const thousandEther = "1000000000000000000000";
 
@@ -161,10 +174,37 @@ async function deploy() {
         account: await accountOne.getAddress(),
         providerOrSigner: accountOne,
       });
-      console.log(`Successfully minted ${daiBal} fDaix token 🥳`);
+      // console.log(`Successfully minted ${daiBal} fDaix token 🥳`);
+      console.log(
+        `${chalk.yellow(">> Successfully minted ")}${chalk.bold.green(
+          daiBal
+        )} ${chalk.yellow("fDaix token 🥳🥳🥳")} \n`
+      );
     }
   } catch (err) {
     console.log(err);
+  }
+
+  async function promptForAddress(message) {
+    const address = await inquirer.prompt([
+      {
+        type: "input",
+        name: "address",
+        message: message,
+      },
+    ]);
+    return address.address;
+  }
+
+  async function promptForFlowrate() {
+    const flowRate = await inquirer.prompt([
+      {
+        type: "number",
+        name: "flowrate",
+        message: "Enter Flowrate per second: ",
+      },
+    ]);
+    return flowRate.flowrate;
   }
 
   async function checkBalance(accountAddress, providerOrSigner) {
@@ -173,7 +213,12 @@ async function deploy() {
         account: accountAddress,
         providerOrSigner: providerOrSigner,
       });
-      console.log(`DAIx balance for ${accountAddress} is: ${daixBalance}🤑💸`);
+      // console.log(`DAIx balance for ${accountAddress} is: ${daixBalance}`);
+      console.log(
+        `${chalk.yellow(">> DAIx balance for ")}${chalk.bold.green(
+          accountAddress
+        )} ${chalk.yellow("is:")} ${chalk.bold.green(daixBalance)} 🪙🪙🪙\n`
+      );
     } catch (err) {
       console.log(err);
     }
@@ -202,76 +247,102 @@ async function deploy() {
           ]);
 
           if (choiseAddress.confirm) {
-            console.log("You choosed to go with manual address!");
-            // receiver address
-            const receiverAddress = await inquirer.prompt([
-              {
-                type: "input",
-                name: "address",
-                message: "Please enter an address:",
-              },
-            ]);
-
-            // flowrate
-            const flowRate = await inquirer.prompt([
-              {
-                type: "number",
-                name: "flowrate",
-                message: "Enter Flowrate per second: ",
-              },
-            ]);
-            console.log(receiverAddress.address);
-            console.log(flowRate.flowrate);
+            // console.log("You choosed to go with manual address!📝📝📝");
             console.log(
-              `Creating your stream to: ${receiverAddress.address} with flowrate: ${flowRate.flowrate}`
+              `${chalk.yellow(
+                ">> You choosed to go with manual address!📝📝📝"
+              )} \n`
+            );
+            // receiver address
+            const address = await promptForAddress(
+              "Please enter the receiver address: "
+            );
+            const flowrate = await promptForFlowrate();
+
+            console.log(
+              `${chalk.cyan(
+                "==============================================================="
+              )} \n`
+            );
+            // console.log(
+            //   `Creating your stream to: ${address} with flowrate: ${flowrate}`
+            // );
+            console.log(
+              `${chalk.yellow(
+                ">> Creating your stream to: "
+              )}${chalk.bold.green(address)} ${chalk.yellow(
+                "with flowrate: "
+              )}${chalk.bold.green(flowrate)}\n`
             );
 
             // starting the stream with manual address
             let createFlowOperation = daix.createFlow({
               sender: await accountOne.getAddress(),
-              receiver: await receiverAddress.address,
-              flowRate: flowRate.flowrate.toString(),
+              receiver: address.toString(),
+              flowRate: flowrate.toString(),
               // userData?: string
             });
 
             const result = await createFlowOperation.exec(accountOne);
             console.log(result);
-            console.log("Transaction Hash: " + result.hash);
-            txHashes.push(result.hash);
+            console.log(
+              `${chalk.yellow(">> Transaction hash: ")}${chalk.bold.green(
+                result.hash
+              )}\n`
+            );
 
+            txHashes.push(result.hash);
             fs.writeFileSync("txHashes.json", JSON.stringify(txHashes));
-            console.log("Transactions recorded and saved to txHashes.json");
+
+            console.log(
+              `${chalk.yellow(
+                ">> Transactions recorded and saved to txHashes.json!💾💾💾"
+              )}\n`
+            );
 
             const receipt = await result.wait();
             if (receipt) {
               console.log(
-                `stream successfully started from "${await accountOne.getAddress()}" with flowrate: "${
-                  flowRate.flowrate
-                }"to: "${receiverAddress.address}" \u{1F60E}`
+                `${chalk.yellow(
+                  ">> Stream successfully started from "
+                )}\n${chalk.bold.green(
+                  await accountOne.getAddress()
+                )} ${chalk.yellow("with flowrate: ")}${chalk.bold.green(
+                  flowrate
+                )} ${chalk.yellow("to: ")}${chalk.bold.green(address)}\n`
               );
-              console.log("Transaction hash:", receipt.transactionHash);
             }
+            console.log(
+              `${chalk.cyan(
+                "==============================================================="
+              )} \n`
+            );
             prompt();
           } // -----------------------------------------------------------------------------------ELse Part(default accounts)
           else {
-            const flowRate = await inquirer.prompt([
-              {
-                type: "number",
-                name: "flowrate",
-                message: "Enter Flowrate per second: ",
-              },
-            ]);
-            console.log("Creating your stream with hardhat account [2]...");
+            const flowrate = await promptForFlowrate();
             console.log(
-              `Creating your stream to: ${await accountTwo.getAddress()} with flowrate: ${
-                flowRate.flowrate
-              }`
+              `${chalk.cyan(
+                "==============================================================="
+              )} \n`
+            );
+
+            console.log(
+              `${chalk.yellow(
+                ">> Creating your stream from: "
+              )}${chalk.bold.green(
+                await accountOne.getAddress()
+              )} ${chalk.yellow("to:")} ${chalk.bold.green(
+                await accountTwo.getAddress()
+              )} ${chalk.yellow("with flowrate: ")}${chalk.bold.green(
+                flowrate
+              )}\n`
             );
 
             let createFlowOperation = daix.createFlow({
               sender: await accountOne.getAddress(),
               receiver: await accountTwo.getAddress(),
-              flowRate: flowRate.flowrate.toString(),
+              flowRate: flowrate.toString(),
               // userData?: string
             });
 
@@ -279,192 +350,141 @@ async function deploy() {
             console.log(result);
 
             const receipt = await result.wait();
-            console.log("Transaction Hash: " + result.hash);
-            txHashes.push(result.hash);
 
+            console.log(
+              `${chalk.yellow(">> ### Transaction Hash: ")}${chalk.bold.green(
+                result.hash
+              )}\n`
+            );
+
+            txHashes.push(result.hash);
             fs.writeFileSync("txHashes.json", JSON.stringify(txHashes));
-            console.log("Transactions recorded and saved to txHashes.json");
+
+            console.log(
+              `${chalk.yellow(
+                ">> Transactions recorded and saved to txHashes.json!💾💾💾"
+              )}\n`
+            );
 
             if (receipt) {
-              console.log("Stream started with hardhat accounts! \u{1F60E}");
+              console.log(
+                `${chalk.yellow(
+                  ">> Stream started with hardhat accounts! \u{1F60E}"
+                )}\n`
+              );
             }
+            console.log(
+              `${chalk.cyan(
+                "==============================================================="
+              )} \n`
+            );
             prompt();
           }
         }
 
-        if (answers.selectedOption === "balanceof") {
-          const viewBalanceAddress = await inquirer.prompt([
-            {
-              type: "input",
-              name: "address",
-              message: "Enter an address to check balance of: ",
-            },
-          ]);
-
-          // try {
-          //   const daixBalance = await daix.balanceOf({
-          //     account: await viewBalanceAddress.address,
-          //     providerOrSigner: accountTwo,
-          //   });
-          //   console.log("account balance: " + daixBalance);
-          //   console.log(
-          //     `DAIx balance for ${viewBalanceAddress.address} is: ${daixBalance}🤑💸`
-          //   );
-          // } catch (err) {
-          //   console.log(err);
-          // }
-          await checkBalance(await viewBalanceAddress.address, accountOne);
-          prompt();
-        }
-
-        if (answers.selectedOption === "viewnet") {
-          const viewFlowAddress = await inquirer.prompt([
-            {
-              type: "input",
-              name: "address",
-              message: "Enter an address to get the net flow of: ",
-            },
-          ]);
-          try {
-            const appFlowRate = await daix.getNetFlow({
-              account: await viewFlowAddress.address,
-              providerOrSigner: superSigner,
-            });
-            console.log("flowRate:" + appFlowRate);
-            console.log(
-              `Net flow rate of ${viewFlowAddress.address} is: ${appFlowRate}`
-            );
-            // const appFlowRateOwner = await daix.getNetFlow({
-            //   account: await address,
-            //   providerOrSigner: superSigner,
-            // });
-            // console.log("flowRateOwner:" + appFlowRateOwner);
-            // let res = await daix.getFlow({
-            //   sender: await accountOne.getAddress(),
-            //   receiver: await accountTwo.getAddress(),
-            //   providerOrSigner: accountOne,
-            // });
-            // console.log("getFlow:" + res);
-          } catch (err) {
-            console.log(err);
-          }
-          prompt();
-        }
-
-        if (answers.selectedOption === "viewflow") {
-          const viewFlowAddress = await inquirer.prompt([
-            {
-              type: "input",
-              name: "address",
-              message: "Enter an address to get the flow of: ",
-            },
-          ]);
-          try {
-            const appFlowRate = await daix.getFlow({
-              sender: await accountOne.getAddress(),
-              receiver: viewFlowAddress.address,
-              providerOrSigner: superSigner,
-            });
-            console.log(appFlowRate);
-          } catch (err) {
-            console.log(err);
-          }
-          prompt();
-        }
-
-        if (answers.selectedOption === "viewaccountflow") {
-          const viewFlowAddress = await inquirer.prompt([
-            {
-              type: "input",
-              name: "address",
-              message: "Enter an address to get the Account Flow Info of: ",
-            },
-          ]);
-          try {
-            const appFlowRate = await daix.getAccountFlowInfo({
-              account: await viewFlowAddress.address,
-              providerOrSigner: superSigner,
-            });
-            console.log(appFlowRate);
-          } catch (err) {
-            console.log(err);
-          }
-          prompt();
-        }
-
         if (answers.selectedOption === "update") {
-          const address = await inquirer.prompt([
-            {
-              type: "input",
-              name: "address",
-              message: "Enter the recepient address: ",
-            },
-          ]);
-          const flowRate = await inquirer.prompt([
-            {
-              type: "number",
-              name: "flowrate",
-              message: "Enter Flowrate per second: ",
-            },
-          ]);
+          const address = await promptForAddress(
+            "Please enter the receiver address: "
+          );
+          const flowrate = await promptForFlowrate();
+          console.log(
+            `${chalk.cyan(
+              "==============================================================="
+            )} \n`
+          );
+          console.log(`${chalk.yellow("Updating the stream...")} \n`);
 
           try {
             let updateFlowOperation = daix.updateFlow({
               sender: await accountOne.getAddress(),
-              receiver: await address.address,
-              flowRate: flowRate.flowrate,
+              receiver: await address,
+              flowRate: flowrate,
             });
 
-            const resultUpdate = await updateFlowOperation.exec(accountOne);
-            console.log(resultUpdate);
+            const result = await updateFlowOperation.exec(accountOne);
+            console.log(result);
 
-            const receiptUpdate = await resultUpdate.wait();
+            const receiptUpdate = await result.wait();
+            console.log(
+              `${chalk.yellow(">> ### Transaction Hash: ")}${chalk.bold.green(
+                result.hash
+              )}\n`
+            );
+
+            txHashes.push(result.hash);
+            fs.writeFileSync("txHashes.json", JSON.stringify(txHashes));
+            console.log(
+              `${chalk.yellow(
+                ">> Transactions recorded and saved to txHashes.json!💾💾💾"
+              )}\n`
+            );
 
             if (receiptUpdate) {
               console.log(
-                `stream updated for ${address.address} with flowrate: ${flowRate.flowrate}!🥳`
+                `${chalk.yellow(">> Stream updated for: ")}${chalk.bold.green(
+                  address
+                )} ${chalk.yellow("with flowrate: ")}${chalk.bold.green(
+                  flowrate
+                )}🥳🥳🥳\n`
               );
             }
           } catch (err) {
             console.log(err);
           }
+          console.log(
+            `${chalk.cyan(
+              "==============================================================="
+            )} \n`
+          );
           prompt();
         }
 
         if (answers.selectedOption === "delete") {
-          const address = await inquirer.prompt([
-            {
-              type: "input",
-              name: "address",
-              message: "Enter the receiver address: ",
-            },
-          ]);
-
+          const address = await promptForAddress(
+            "Please enter the receiver address: "
+          );
+          console.log(
+            `${chalk.cyan(
+              "==============================================================="
+            )} \n`
+          );
+          console.log(`${chalk.yellow("Deleting the stream...")} \n`);
           try {
             let updateFlowOperation = daix.deleteFlow({
               sender: await accountOne.getAddress(),
-              receiver: await address.address,
+              receiver: await address,
             });
 
-            const resultDelete = await updateFlowOperation.exec(accountOne);
-            console.log(resultDelete);
+            const result = await updateFlowOperation.exec(accountOne);
+            console.log(result);
 
-            const receiptDelete = await resultDelete.wait();
-            //------
-            console.log("Transaction Hash: " + resultDelete.hash);
-            txHashes.push(resultDelete.hash);
+            const receipt = await result.wait();
+            console.log(
+              `${chalk.yellow(">> ### Transaction Hash: ")}${chalk.bold.green(
+                result.hash
+              )}\n`
+            );
+
+            txHashes.push(result.hash);
 
             fs.writeFileSync("txHashes.json", JSON.stringify(txHashes));
             console.log(
-              "----------Transactions recorded and saved to txHashes.json"
+              `${chalk.yellow(
+                ">> Transactions recorded and saved to txHashes.json!💾💾💾"
+              )}\n`
             );
 
-            if (receiptDelete) {
-              console.log("stream deleted!🙂");
+            if (receipt) {
+              console.log("stream deleted successfully!🙂");
             }
           } catch (err) {
             console.log(err);
           }
+          console.log(
+            `${chalk.cyan(
+              "==============================================================="
+            )} \n`
+          );
           prompt();
         }
 
@@ -472,7 +492,11 @@ async function deploy() {
           const txHashes = JSON.parse(fs.readFileSync("txHashes.json"));
           let nonce = await accountOne.getTransactionCount();
           for (const txHash of txHashes) {
-            console.log("Hash going to deploy again: " + txHash);
+            console.log(
+              `${chalk.yellow(
+                ">> Hash going to deploy again: "
+              )}${chalk.bold.green(txHash)}\n`
+            );
             const tx = await accountOne.provider.getTransaction(txHash);
             const newTx = {
               nonce: nonce++,
@@ -485,22 +509,148 @@ async function deploy() {
             };
             const txSend = await accountOne.sendTransaction(newTx);
             const receipt = await txSend.wait();
-            console.log(`Transaction ${txHash} replayed`);
-            console.log(receipt);
+            console.log(txSend);
+            console.log(
+              `${chalk.yellow(
+                ">> ### New transaction Hash: "
+              )}${chalk.bold.green(txSend.hash)}\n`
+            );
+            console.log(
+              `${chalk.yellow(">> Transaction: ")}${chalk.bold.green(
+                txHash
+              )} ${chalk.yellow("re-deployed")}\n`
+            );
+            console.log(
+              `${chalk.cyan(
+                "==============================================================="
+              )} \n`
+            );
           }
 
-          console.log("All transactions replayed");
+          console.log(
+            `${chalk.yellow("All transactions re-deployed!🔄🔄🔄")}\n`
+          );
           prompt();
         }
+
+        if (answers.selectedOption === "balanceof") {
+          const address = await promptForAddress(
+            "Please enter the address to check balanceOf: "
+          );
+          console.log(
+            `${chalk.cyan(
+              "==============================================================="
+            )} \n`
+          );
+          await checkBalance(await address, accountOne);
+          console.log(
+            `${chalk.cyan(
+              "==============================================================="
+            )} \n`
+          );
+          prompt();
+        }
+
+        if (answers.selectedOption === "viewnet") {
+          const address = await promptForAddress(
+            "Please enter the address to view net flow rate: "
+          );
+          console.log(
+            `${chalk.cyan(
+              "==============================================================="
+            )} \n`
+          );
+          try {
+            const appFlowRate = await daix.getNetFlow({
+              account: await address,
+              providerOrSigner: superSigner,
+            });
+
+            console.log(
+              `${chalk.yellow(">> Net flow rate of: ")}${chalk.bold.green(
+                address
+              )} ${chalk.yellow("is")} ${chalk.bold.green(appFlowRate)}\n`
+            );
+          } catch (err) {
+            console.log(err);
+          }
+          console.log(
+            `${chalk.cyan(
+              "==============================================================="
+            )} \n`
+          );
+          prompt();
+        }
+
+        if (answers.selectedOption === "viewflow") {
+          const address = await promptForAddress(
+            "Please enter the address to view the Flow details: "
+          );
+          console.log(
+            `${chalk.cyan(
+              "==============================================================="
+            )} \n`
+          );
+          try {
+            const appFlowRate = await daix.getFlow({
+              sender: await accountOne.getAddress(),
+              receiver: address,
+              providerOrSigner: superSigner,
+            });
+            console.log(appFlowRate);
+          } catch (err) {
+            console.log(err);
+          }
+          console.log(
+            `${chalk.cyan(
+              "==============================================================="
+            )} \n`
+          );
+          prompt();
+        }
+
+        if (answers.selectedOption === "viewaccountflow") {
+          const address = await promptForAddress(
+            "Please enter the address to view Account flow info: "
+          );
+          console.log(
+            `${chalk.cyan(
+              "==============================================================="
+            )} \n`
+          );
+          try {
+            const appFlowRate = await daix.getAccountFlowInfo({
+              account: await address,
+              providerOrSigner: superSigner,
+            });
+            console.log(appFlowRate);
+          } catch (err) {
+            console.log(err);
+          }
+          console.log(
+            `${chalk.cyan(
+              "==============================================================="
+            )} \n`
+          );
+          prompt();
+        }
+
         if (answers.selectedOption === "clear") {
           fs.writeFileSync("txHashes.json", "[]");
 
-          console.log("All transactions cleared!");
+          console.log(
+            `\n${chalk.yellow(
+              "All transactions cleared from txHashes array!"
+            )} \n`
+          );
+
           prompt();
         }
         if (answers.selectedOption === "exit") {
           console.log(
-            "Thank you for visiting superFluid developer dashboard!💚💚"
+            `\n${chalk.bold.green(
+              "Thank you for visiting superFluid developer dashboard!💚💚"
+            )}\n`
           );
         }
       });
