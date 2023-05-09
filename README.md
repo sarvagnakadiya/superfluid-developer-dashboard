@@ -41,7 +41,7 @@ Now you can interact with superfluid, <br>
 you can create/update/delete/view streams using this prompt.
 
 ```shell
-? Please select an option: (Use arrow keys)
+? Please select an option:
 > Start Stream
   Update stream
   Delete stream
@@ -49,6 +49,8 @@ you can create/update/delete/view streams using this prompt.
   getNetFlow
   getAccountFlowInfo
   check DAIx balance
+  re-execute everything?
+  Clear all transactions?
   Exit console
 ```
 
@@ -60,7 +62,7 @@ It will ask:
 ? Do you want to manually enter the receiver address? (Y/n)
 ```
 
-### It means that if you enter "y" <br>
+### It means that if you enter "y"
 
 Then it will ask you the receiver address
 
@@ -81,13 +83,13 @@ Reminder: the flowrate will be in form of "Wei"
 
 ###### Now, as you enter the flow rate, you will be asknowledged with trasaction details.
 
-### But if you enter "n" <br>
+### But if you enter "n"
 
 Then, by default it will choose the hardhat account[2]
 
 ###### You will be asked to enter the flowrate, and as you enter transaction will proceed and you will be acknowledged with transaction details
 
-## When you choose update stream
+## When you choose "update stream"
 
 It will ask for recepient address
 
@@ -103,7 +105,7 @@ and the flowrate
 
 ###### As you enter the flowrate, it will update the stream and you will be acknowledged with transaction details.
 
-## When you choose delete stream
+## When you choose "delete stream"
 
 It will ask for recepient address
 
@@ -113,14 +115,14 @@ It will ask for recepient address
 
 ###### As you enter the recepient address, it will delete the stream and you will be acknowledged with transaction details.
 
-## When you choose getFlow / getNetFlow / getAccountFlowInfo
+## When you choose "getFlow" / "getNetFlow" / "getAccountFlowInfo"
 
 ###### You will be acknowledged with the flow details response <br>
 
 You can learn more about it on: <br>
 https://docs.superfluid.finance/superfluid/developers/constant-flow-agreement-cfa/cfa-operations/read-methods
 
-## When you choose check DAIx balance
+## When you choose "check DAIx balance"
 
 It will ask you the address whose balance you want to view
 
@@ -131,8 +133,20 @@ It will ask you the address whose balance you want to view
 ###### As you enter the address you will be acknowledged with the balance like this:
 
 ```shell
-DAIx balance for 0x8626f6940E2eb28930eFb4CeF49B2d1F2C9C1199 is: 5060000🤑💸
+>> DAIx balance for 0x70997970C51812dc3A010C7d01b50e0d17dc79C8 is: 1000000000000000000000 🪙🪙🪙
 ```
+
+## When you choose "re-execute everything?"
+
+So, basically all your transactions like start/update/delete will be recorded in a file, and as you select this option all the transactions you tried manually will be re-executed again.
+
+It makes the testing process easier and efficient.
+Helping developers to re-do all the transactions with just one click!!
+
+## When you choose "Clear all transactions?"
+
+When you choose this option, it will clear out all the transactions and you can head up with a frest start. <br>
+Basically, it will clear all the transactions record.
 
 ## You can simply just exit the console by choosing "Exit console"
 
