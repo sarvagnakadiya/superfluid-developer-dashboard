@@ -10,24 +10,28 @@ const {
 } = require("@superfluid-finance/ethereum-contracts/dev-scripts/deploy-test-framework");
 const TestToken = require("@superfluid-finance/ethereum-contracts/build/contracts/TestToken.json");
 
-const readline = require("readline");
-
-const rl = readline.createInterface({
-  input: process.stdin,
-  output: process.stdout,
-});
-
 async function deploy() {
   const options = [
-    { name: "Start Stream", value: "start" },
-    { name: "Update stream", value: "update" },
-    { name: "Delete stream", value: "delete" },
-    { name: "getFlow", value: "viewflow" },
-    { name: "getNetFlow", value: "viewnet" },
-    { name: "getAccountFlowInfo", value: "viewaccountflow" },
-    { name: "check DAIx balance", value: "balanceof" },
+    { name: "Check DAIx balance?", value: "balanceof" },
+    { name: "(CFA) Start Stream", value: "start" },
+    { name: "(CFA) Update stream", value: "update" },
+    { name: "(CFA) Delete stream", value: "delete" },
+    { name: "(CFA) getFlow", value: "viewflow" },
+    { name: "(CFA) getNetFlow", value: "viewnet" },
+    { name: "(CFA) getAccountFlowInfo", value: "viewaccountflow" },
+    { name: "(IDA) Create Index", value: "newindex" },
+    { name: "(IDA) Update Index", value: "updateindex" },
+    { name: "(IDA) Add subscriber", value: "updatesubscriptionunits" },
+    { name: "(IDA) delete subscriber", value: "deletesubscription" },
+    { name: "(IDA) getIndex", value: "getindex" },
+    { name: "(IDA) getSubscription", value: "getsubscription" },
+    { name: "(IDA) Approve subscription", value: "approvesubscription" },
+    { name: "(IDA) claim distribution", value: "claim" },
+    { name: "(IDA) Distribute funds", value: "distribute" },
+    { name: "(IDA) Revoke subscription", value: "revokesubscription" },
     { name: "re-execute everything?", value: "reexecute" },
     { name: "Clear all transactions?", value: "clear" },
+    { name: "Change Signer?", value: "changesigner" },
     { name: "Exit console", value: "exit" },
   ];
 
@@ -46,7 +50,7 @@ async function deploy() {
     name: "unknown",
   });
 
-  const address = await inquirer.prompt([
+  let address = await inquirer.prompt([
     {
       type: "number",
       name: "account",
@@ -54,7 +58,7 @@ async function deploy() {
     },
   ]);
 
-  const accountOne = await provider.getSigner(address.account);
+  let accountOne = await provider.getSigner(address.account);
   const accountTwo = await provider.getSigner(address.account + 1);
 
   // -----------------------------------------------------------use this code if want to stream with your choise of account
@@ -196,15 +200,15 @@ async function deploy() {
     return address.address;
   }
 
-  async function promptForFlowrate() {
-    const flowRate = await inquirer.prompt([
+  async function promptForNumValue(message) {
+    const inputValue = await inquirer.prompt([
       {
         type: "number",
-        name: "flowrate",
-        message: "Enter Flowrate per second: ",
+        name: "value",
+        message: message,
       },
     ]);
-    return flowRate.flowrate;
+    return inputValue.value;
   }
 
   async function checkBalance(accountAddress, providerOrSigner) {
@@ -257,7 +261,9 @@ async function deploy() {
             const address = await promptForAddress(
               "Please enter the receiver address: "
             );
-            const flowrate = await promptForFlowrate();
+            const flowrate = await promptForNumValue(
+              "Enter Flowrate per second: "
+            );
 
             console.log(
               `${chalk.cyan(
@@ -320,7 +326,9 @@ async function deploy() {
             prompt();
           } // -----------------------------------------------------------------------------------ELse Part(default accounts)
           else {
-            const flowrate = await promptForFlowrate();
+            const flowrate = await promptForNumValue(
+              "Enter Flowrate per second: "
+            );
             console.log(
               `${chalk.cyan(
                 "==============================================================="
@@ -386,7 +394,9 @@ async function deploy() {
           const address = await promptForAddress(
             "Please enter the receiver address: "
           );
-          const flowrate = await promptForFlowrate();
+          const flowrate = await promptForNumValue(
+            "Enter Flowrate per second: "
+          );
           console.log(
             `${chalk.cyan(
               "==============================================================="
@@ -646,12 +656,563 @@ async function deploy() {
 
           prompt();
         }
+
+        //-----------------------------------------------------------------------
+        if (answers.selectedOption === "newindex") {
+          let indexCount = 1;
+
+          console.log(
+            `${chalk.cyan(
+              "==============================================================="
+            )} \n`
+          );
+          console.log(`${chalk.yellow("Creating the Index...")} \n`);
+
+          try {
+            let createIndexOperation = daix.createIndex({
+              indexId: indexCount.toString(),
+              // userData?: string
+            });
+
+            const result = await createIndexOperation.exec(accountOne);
+            console.log(result);
+
+            const receipt = await result.wait();
+            console.log(
+              `${chalk.yellow(">> ### Transaction Hash: ")}${chalk.bold.green(
+                result.hash
+              )}\n`
+            );
+
+            txHashes.push(result.hash);
+            fs.writeFileSync("txHashes.json", JSON.stringify(txHashes));
+            console.log(
+              `${chalk.yellow(
+                ">> Transactions recorded and saved to txHashes.json!💾💾💾"
+              )}\n`
+            );
+
+            if (receipt) {
+              console.log(
+                `${chalk.yellow(">> Index ")}${chalk.bold.green(
+                  indexCount
+                )} ${chalk.yellow("created successfully! ")}🥳🥳🥳\n`
+              );
+              indexCount++;
+            }
+          } catch (err) {
+            console.log(err);
+          }
+          console.log(
+            `${chalk.cyan(
+              "==============================================================="
+            )} \n`
+          );
+
+          prompt();
+        }
+
+        if (answers.selectedOption === "updateindex") {
+          const index = await promptForNumValue(
+            "Please Enter the Index number: "
+          );
+          const indexValue = await promptForNumValue(
+            "Please Enter the Index value: "
+          );
+          console.log(
+            `${chalk.cyan(
+              "==============================================================="
+            )} \n`
+          );
+          console.log(`${chalk.yellow("Updating the Index value...")} \n`);
+
+          try {
+            let updateIndexOperation = daix.updateIndexValue({
+              indexId: index.toString(),
+              indexValue: indexValue.toString(),
+              // userData?: string
+            });
+
+            const result = await updateIndexOperation.exec(accountOne);
+            console.log(result);
+
+            const receipt = await result.wait();
+            console.log(
+              `${chalk.yellow(">> ### Transaction Hash: ")}${chalk.bold.green(
+                result.hash
+              )}\n`
+            );
+
+            txHashes.push(result.hash);
+            fs.writeFileSync("txHashes.json", JSON.stringify(txHashes));
+            console.log(
+              `${chalk.yellow(
+                ">> Transactions recorded and saved to txHashes.json!💾💾💾"
+              )}\n`
+            );
+
+            if (receipt) {
+              console.log(
+                `${chalk.yellow(">> Index value for index ")}${chalk.bold.green(
+                  index
+                )} ${chalk.yellow(
+                  "updated successfully with index value "
+                )}${chalk.bold.green(indexValue)} 🥳🥳🥳\n`
+              );
+            }
+          } catch (err) {
+            console.log(err);
+          }
+          console.log(
+            `${chalk.cyan(
+              "==============================================================="
+            )} \n`
+          );
+
+          prompt();
+        }
+        if (answers.selectedOption === "updatesubscriptionunits") {
+          const index = await promptForNumValue(
+            "Please Enter the Index number: "
+          );
+          const address = await promptForAddress(
+            "Please Enter the subscriber address: "
+          );
+          const units = await promptForNumValue("Please Enter the Units: ");
+          console.log(
+            `${chalk.cyan(
+              "==============================================================="
+            )} \n`
+          );
+          console.log(`${chalk.yellow("Updating the Index value...")} \n`);
+
+          try {
+            let updatesubscriptionUnitsOperation = daix.updateSubscriptionUnits(
+              {
+                indexId: index.toString(),
+                subscriber: address.toString(),
+                units: units.toString(),
+                // userData?: string
+              }
+            );
+
+            const result = await updatesubscriptionUnitsOperation.exec(
+              accountOne
+            );
+            console.log(result);
+
+            const receipt = await result.wait();
+            console.log(
+              `${chalk.yellow(">> ### Transaction Hash: ")}${chalk.bold.green(
+                result.hash
+              )}\n`
+            );
+
+            txHashes.push(result.hash);
+            fs.writeFileSync("txHashes.json", JSON.stringify(txHashes));
+            console.log(
+              `${chalk.yellow(
+                ">> Transactions recorded and saved to txHashes.json!💾💾💾"
+              )}\n`
+            );
+
+            if (receipt) {
+              console.log(
+                `${chalk.yellow(">> Subscriber ")}${chalk.bold.green(
+                  address
+                )} ${chalk.yellow(
+                  "added successfully with "
+                )}${chalk.bold.green(units)}${chalk.yellow("units")} 🥳🥳🥳\n`
+              );
+            }
+          } catch (err) {
+            console.log(err);
+          }
+          console.log(
+            `${chalk.cyan(
+              "==============================================================="
+            )} \n`
+          );
+
+          prompt();
+        }
+        if (answers.selectedOption === "deletesubscription") {
+          const index = await promptForNumValue(
+            "Please Enter the Index number: "
+          );
+          const address = await promptForAddress(
+            "Please Enter the subscriber address: "
+          );
+
+          console.log(
+            `${chalk.cyan(
+              "==============================================================="
+            )} \n`
+          );
+          console.log(
+            `${chalk.yellow(
+              "Updating the Index value to 0 (deleting subscriber)..."
+            )} \n`
+          );
+
+          try {
+            let deleteSubscriptionOperation = daix.deleteSubscription({
+              indexId: index.toString(),
+              subscriber: address.toString(),
+              publisher: await accountOne.getAddress(),
+              // userData?: string
+            });
+
+            const result = await deleteSubscriptionOperation.exec(accountOne);
+            console.log(result);
+
+            const receipt = await result.wait();
+            console.log(
+              `${chalk.yellow(">> ### Transaction Hash: ")}${chalk.bold.green(
+                result.hash
+              )}\n`
+            );
+
+            txHashes.push(result.hash);
+            fs.writeFileSync("txHashes.json", JSON.stringify(txHashes));
+            console.log(
+              `${chalk.yellow(
+                ">> Transactions recorded and saved to txHashes.json!💾💾💾"
+              )}\n`
+            );
+
+            if (receipt) {
+              console.log(
+                `${chalk.yellow(">> Subscriber ")}${chalk.bold.green(
+                  address
+                )} ${chalk.yellow("deleted successfully!")} 🥳🥳🥳\n`
+              );
+            }
+          } catch (err) {
+            console.log(err);
+          }
+          console.log(
+            `${chalk.cyan(
+              "==============================================================="
+            )} \n`
+          );
+
+          prompt();
+        }
+        if (answers.selectedOption === "distribute") {
+          const index = await promptForNumValue(
+            "Please Enter the Index number: "
+          );
+          const amount = await promptForNumValue("Please Enter the Amount: ");
+          console.log(
+            `${chalk.cyan(
+              "==============================================================="
+            )} \n`
+          );
+          console.log(`${chalk.yellow("Distributing funds...")} \n`);
+
+          try {
+            let distributeOperation = daix.distribute({
+              indexId: index.toString(),
+              amount: amount.toString(),
+              // userData?: string
+            });
+
+            const result = await distributeOperation.exec(accountOne);
+            console.log(result);
+
+            const receipt = await result.wait();
+            console.log(
+              `${chalk.yellow(">> ### Transaction Hash: ")}${chalk.bold.green(
+                result.hash
+              )}\n`
+            );
+
+            txHashes.push(result.hash);
+            fs.writeFileSync("txHashes.json", JSON.stringify(txHashes));
+            console.log(
+              `${chalk.yellow(
+                ">> Transactions recorded and saved to txHashes.json!💾💾💾"
+              )}\n`
+            );
+
+            if (receipt) {
+              console.log(
+                `${chalk.yellow(
+                  ">> Successfully distributed "
+                )}${chalk.bold.green(amount)} ${chalk.yellow(
+                  "tokens for Index: "
+                )}${chalk.bold.green(index)} 🥳🥳🥳\n`
+              );
+            }
+          } catch (err) {
+            console.log(err);
+          }
+          console.log(
+            `${chalk.cyan(
+              "==============================================================="
+            )} \n`
+          );
+
+          prompt();
+        }
+
+        if (answers.selectedOption === "approvesubscription") {
+          const index = await promptForNumValue(
+            "Please Enter the Index number: "
+          );
+          const address = await promptForAddress(
+            "Please Enter the publisher address: "
+          );
+          console.log(
+            `${chalk.cyan(
+              "==============================================================="
+            )} \n`
+          );
+          console.log(`${chalk.yellow("Approving the subscription...")} \n`);
+
+          try {
+            let approvesubscriptionOperation = daix.approveSubscription({
+              indexId: index.toString(),
+              publisher: address.toString(),
+              // userData?: string
+            });
+
+            const result = await approvesubscriptionOperation.exec(accountOne);
+            console.log(result);
+
+            const receipt = await result.wait();
+            console.log(
+              `${chalk.yellow(">> ### Transaction Hash: ")}${chalk.bold.green(
+                result.hash
+              )}\n`
+            );
+
+            txHashes.push(result.hash);
+            fs.writeFileSync("txHashes.json", JSON.stringify(txHashes));
+            console.log(
+              `${chalk.yellow(
+                ">> Transactions recorded and saved to txHashes.json!💾💾💾"
+              )}\n`
+            );
+
+            if (receipt) {
+              console.log(
+                `${chalk.yellow(
+                  ">> successfully approved subscription for Index:  "
+                )}${chalk.bold.green(index)} 🥳🥳🥳\n`
+              );
+            }
+          } catch (err) {
+            console.log(err);
+          }
+          console.log(
+            `${chalk.cyan(
+              "==============================================================="
+            )} \n`
+          );
+
+          prompt();
+        }
+
+        if (answers.selectedOption === "claim") {
+          const index = await promptForNumValue(
+            "Please Enter the Index number: "
+          );
+          const address = await promptForAddress(
+            "Please Enter the publisher address: "
+          );
+          console.log(
+            `${chalk.cyan(
+              "==============================================================="
+            )} \n`
+          );
+          console.log(`${chalk.yellow("Approving the subscription...")} \n`);
+
+          try {
+            let claimOperation = daix.claim({
+              indexId: index.toString(),
+              subscriber: await accountOne.getAddress(),
+              publisher: address.toString(),
+              // userData?: string
+            });
+
+            const result = await claimOperation.exec(accountOne);
+            console.log(result);
+
+            const receipt = await result.wait();
+            console.log(
+              `${chalk.yellow(">> ### Transaction Hash: ")}${chalk.bold.green(
+                result.hash
+              )}\n`
+            );
+
+            txHashes.push(result.hash);
+            fs.writeFileSync("txHashes.json", JSON.stringify(txHashes));
+            console.log(
+              `${chalk.yellow(
+                ">> Transactions recorded and saved to txHashes.json!💾💾💾"
+              )}\n`
+            );
+
+            if (receipt) {
+              console.log(
+                `${chalk.yellow(
+                  ">> Distribution successfully claimed for Index number: "
+                )}${chalk.bold.green(index)} 🥳🥳🥳\n`
+              );
+            }
+          } catch (err) {
+            console.log(err);
+          }
+          console.log(
+            `${chalk.cyan(
+              "==============================================================="
+            )} \n`
+          );
+
+          prompt();
+        }
+        if (answers.selectedOption === "revokesubscription") {
+          const index = await promptForNumValue(
+            "Please Enter the Index number: "
+          );
+          const address = await promptForAddress(
+            "Please Enter the publisher address: "
+          );
+          console.log(
+            `${chalk.cyan(
+              "==============================================================="
+            )} \n`
+          );
+          console.log(`${chalk.yellow("Approving the subscription...")} \n`);
+
+          try {
+            let approvesubscriptionOperation = daix.revokeSubscription({
+              indexId: index.toString(),
+              publisher: address.toString(),
+              // userData?: string
+            });
+
+            const result = await approvesubscriptionOperation.exec(accountOne);
+            console.log(result);
+
+            const receipt = await result.wait();
+            console.log(
+              `${chalk.yellow(">> ### Transaction Hash: ")}${chalk.bold.green(
+                result.hash
+              )}\n`
+            );
+
+            txHashes.push(result.hash);
+            fs.writeFileSync("txHashes.json", JSON.stringify(txHashes));
+            console.log(
+              `${chalk.yellow(
+                ">> Transactions recorded and saved to txHashes.json!💾💾💾"
+              )}\n`
+            );
+
+            if (receipt) {
+              console.log(
+                `${chalk.yellow(
+                  ">> successfully revoked subscription for Index:  "
+                )}${chalk.bold.green(index)} 🥳🥳🥳\n`
+              );
+            }
+          } catch (err) {
+            console.log(err);
+          }
+          console.log(
+            `${chalk.cyan(
+              "==============================================================="
+            )} \n`
+          );
+
+          prompt();
+        }
+
+        if (answers.selectedOption === "getindex") {
+          const index = await promptForNumValue(
+            "Please Enter the Index number: "
+          );
+
+          console.log(
+            `${chalk.cyan(
+              "==============================================================="
+            )} \n`
+          );
+
+          try {
+            let getIndex = await daix.getIndex({
+              publisher: await accountOne.getAddress(),
+              indexId: index.toString(),
+              providerOrSigner: superSigner,
+            });
+
+            console.log(getIndex);
+          } catch (err) {
+            console.log(err);
+          }
+          console.log(
+            `${chalk.cyan(
+              "==============================================================="
+            )} \n`
+          );
+
+          prompt();
+        }
+        if (answers.selectedOption === "getsubscription") {
+          const index = await promptForNumValue(
+            "Please Enter the Index number: "
+          );
+          const address = await promptForAddress(
+            "Please enter the publisher address: "
+          );
+
+          console.log(
+            `${chalk.cyan(
+              "==============================================================="
+            )} \n`
+          );
+
+          try {
+            let getSubscription = await daix.getSubscription({
+              publisher: address.toString(),
+              indexId: index.toString(),
+              subscriber: await accountOne.getAddress(),
+              providerOrSigner: superSigner,
+            });
+
+            console.log(getSubscription);
+          } catch (err) {
+            console.log(err);
+          }
+          console.log(
+            `${chalk.cyan(
+              "==============================================================="
+            )} \n`
+          );
+
+          prompt();
+        }
         if (answers.selectedOption === "exit") {
           console.log(
             `\n${chalk.bold.green(
               "Thank you for visiting superFluid developer dashboard!💚💚"
             )}\n`
           );
+        }
+        if (answers.selectedOption === "changesigner") {
+          const addressIndex = await promptForNumValue(
+            "Which account you want to interact with: (0-19): "
+          );
+
+          accountOne = await provider.getSigner(addressIndex);
+          console.log(
+            `\n${chalk.bold.green("Signer changed successfully!")}\n`
+          );
+          console.log(await accountOne.getAddress());
+          prompt();
         }
       });
   }
